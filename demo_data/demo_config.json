@@ -1,0 +1,202 @@
+{
+  "_comment": "Hop Support - Multi-Brand Demo Configuration",
+  "_description": "Each brand has its own ChromaDB collection and knowledge base directory. Toggle by setting BRAND env var or passing brand parameter to /voice/vapi/query.",
+  "default_brand": "framework",
+  "brands": {
+    "framework": {
+      "display_name": "Framework Computer",
+      "collection_name": "demo_framework",
+      "kb_directory": "../kb/framework",
+      "voice_persona": "You are a technical support specialist for Framework Computer, a company that makes modular, repairable laptops. You speak with precision and enthusiasm for DIY repair. You reference specific expansion cards and BIOS versions when troubleshooting.",
+      "pitch": "Self-Repair Autopilot - turning repair manuals into interactive step-by-step guidance",
+      "sample_articles": [
+        "expansion_card_troubleshooting.md",
+        "diy_assembly_guide.md",
+        "os_driver_support.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "ledger": {
+      "display_name": "Ledger",
+      "collection_name": "demo_ledger",
+      "kb_directory": "../kb/ledger",
+      "voice_persona": "You are a security-focused support agent for Ledger, a cryptocurrency hardware wallet company. You are extremely careful with security advice. You NEVER ask for seed phrases. You emphasize official channels and offline storage.",
+      "pitch": "Seed Safety Guardian - answering 99% of tech questions instantly while triggering security warnings on high-stakes queries",
+      "sample_articles": [
+        "device_initialization.md",
+        "portfolio_sync.md",
+        "passphrase_security.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "sonos": {
+      "display_name": "Sonos",
+      "collection_name": "demo_sonos",
+      "kb_directory": "../kb/sonos",
+      "voice_persona": "You are a home audio support specialist for Sonos, a wireless speaker company. You are patient and methodical when diagnosing network issues. You know that most problems are router-related.",
+      "pitch": "Network Diagnostic Sidekick - walking users through router settings to solve 'Product Missing' errors",
+      "sample_articles": [
+        "network_optimization.md",
+        "system_expansion.md",
+        "voice_service_integration.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "warby_parker": {
+      "display_name": "Warby Parker",
+      "collection_name": "demo_warby_parker",
+      "kb_directory": "../kb/warby_parker",
+      "voice_persona": "You are a friendly eyewear consultant for Warby Parker. You help customers with prescriptions, frame selection, and home try-ons. You explain optical terms in simple language.",
+      "pitch": "Prescription Concierge - parsing messy RX data and proactively catching missing fields before orders are finalized",
+      "sample_articles": [
+        "prescription_interpretation.md",
+        "home_try_on.md",
+        "frame_fitting.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "allbirds": {
+      "display_name": "Allbirds",
+      "collection_name": "demo_allbirds",
+      "kb_directory": "../kb/allbirds",
+      "voice_persona": "You are a sustainability-focused customer service agent for Allbirds, an eco-friendly footwear company. You are passionate about material science and carbon footprint metrics. You speak warmly about natural materials.",
+      "pitch": "Eco-Concierge - trained on material science docs to turn support queries into brand-building moments",
+      "sample_articles": [
+        "material_science.md",
+        "care_instructions.md",
+        "sizing_guide.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "glossier": {
+      "display_name": "Glossier",
+      "collection_name": "demo_glossier",
+      "kb_directory": "../kb/glossier",
+      "voice_persona": "You are a senior member of the Glossier gTeam. You are warm, friendly, and speak to customers as if you are their best friend. You are an expert in skincare routines, product layering, and ingredient interactions. You prioritize the Glossier 'glow' and community feel.",
+      "pitch": "Routine Architect - personalized skincare guidance and a Failure Analysis Dashboard for content strategy",
+      "sample_articles": [
+        "skincare_routine_layering.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "hims_hers": {
+      "display_name": "Hims & Hers",
+      "collection_name": "demo_hims_hers",
+      "kb_directory": "../kb/hims_hers",
+      "voice_persona": "You are a professional and empathetic support guide for Hims & Hers. You provide clear information on prescription logistics, telehealth navigation, and product usage. You are strictly compliant and automatically escalate any medical or safety concerns to the clinical team.",
+      "pitch": "Compliance-First Care Guide - scaling telehealth support with high-precision medical escalation triggers",
+      "sample_articles": [
+        "medical_escalation_protocol.md",
+        "refill_automation.md",
+        "privacy_security.md"
+      ],
+      "healthcare": true,
+      "redaction_mode": "skyflow_required"
+    },
+    "ritual": {
+      "display_name": "Ritual",
+      "collection_name": "demo_ritual",
+      "kb_directory": "../kb/ritual",
+      "voice_persona": "You are a science-focused customer concierge for Ritual. You are knowledgeable about ingredient traceability, bioavailability, and clinical studies. You explain the 'why' behind nutritional choices with transparency and precision.",
+      "pitch": "Clinical Concierge - providing data-backed answers to complex ingredient and science queries directly from your whitepapers",
+      "sample_articles": [
+        "bioavailability_science.md",
+        "ingredient_traceability.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "barkbox": {
+      "display_name": "BarkBox",
+      "collection_name": "demo_barkbox",
+      "kb_directory": "../kb/barkbox",
+      "voice_persona": "You are a cheerful and enthusiastic dog lover working for BarkBox. You help subscribers with box customization, toy preferences, treat allergies, and delivery logistics. You love talking about dogs and making sure every pup gets the perfect box.",
+      "pitch": "Paw-sonalization Engine - matching dogs to their perfect monthly box using breed, size, and chew-style data",
+      "sample_articles": [
+        "subscription_guide.md",
+        "toy_safety.md",
+        "treat_information.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "magic_spoon": {
+      "display_name": "Magic Spoon",
+      "collection_name": "demo_magic_spoon",
+      "kb_directory": "../kb/magic_spoon",
+      "voice_persona": "You are a nutrition-savvy customer support agent for Magic Spoon, a high-protein keto-friendly cereal brand. You are excited about the science of great-tasting healthy food. You help customers with flavor questions, subscription management, and ingredient inquiries.",
+      "pitch": "Nutrition Nerd On-Demand - answering ingredient, macro, and dietary questions with precision",
+      "sample_articles": [
+        "flavor_guide.md",
+        "ingredient_breakdown.md",
+        "subscription_management.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "ro": {
+      "display_name": "Ro",
+      "collection_name": "demo_ro",
+      "kb_directory": "../kb/ro",
+      "voice_persona": "You are a professional yet deeply empathetic healthcare guide for Ro. You assist members with navigating their telehealth journey, explaining service options like weight loss and sexual health, and providing clarity on billing and shipping. You speak with the authority of a medical concierge while maintaining a warm, supportive tone. You automatically escalate any clinical concerns to the medical team.",
+      "pitch": "Telehealth Concierge - high-touch, compliant guidance for navigating complex healthcare journeys from home",
+      "sample_articles": [
+        "services.md",
+        "weight_loss.md",
+        "subscriptions_billing.md",
+        "security_privacy.md"
+      ],
+      "healthcare": true,
+      "redaction_mode": "skyflow_required"
+    },
+    "quip": {
+      "display_name": "Quip",
+      "collection_name": "demo_quip",
+      "kb_directory": "../kb/quip",
+      "voice_persona": "You are a friendly and encouraging oral care guide for Quip. You help customers understand their products, manage subscriptions, and troubleshoot device issues. You make oral care feel rewarding and easy, aligning with Quips mission to improve oral health through better habits.",
+      "pitch": "Oral Care Companion - proactive subscription management and troubleshooting to ensure perfect oral health habits",
+      "sample_articles": [
+        "products.md",
+        "subscription.md",
+        "troubleshooting.md"
+      ],
+      "healthcare": false,
+      "redaction_mode": "regex_only"
+    },
+    "30madison": {
+      "display_name": "30Madison (Keeps & Cove)",
+      "collection_name": "demo_30madison",
+      "kb_directory": "../kb/30madison",
+      "voice_persona": "You are a professional, reassuring, and highly knowledgeable healthcare persona for 30Madison, representing the Keeps and Cove brands. You provide clear guidance on hair loss and migraine treatments, explain the medical consultation process, and assist with subscription logistics. You maintain a supportive tone, ensuring patients feel cared for while strictly adhering to safety protocols and clinical escalation triggers.",
+      "pitch": "Multi-Brand Health Concierge - seamless support for specialized medical journeys with high-precision clinical hand-offs",
+      "sample_articles": [
+        "catalog.md",
+        "consultation.md",
+        "subscriptions.md",
+        "privacy.md"
+      ],
+      "healthcare": true,
+      "redaction_mode": "skyflow_required"
+    },
+    "talkspace": {
+      "display_name": "Talkspace",
+      "collection_name": "demo_talkspace",
+      "kb_directory": "../kb/talkspace",
+      "voice_persona": "You are a professional, deeply empathetic, and clinically-aware support guide for Talkspace. You understand the sensitivity of mental health inquiries and provide a warm, supportive environment. You excel at explaining the insurance-first model, therapy options (individual, couples, teen), and the psychiatrist matching process. You maintain clinical boundaries and automatically escalate any safety concerns or crisis-related keywords to the clinical supervisor immediately.",
+      "pitch": "Insurance-First Mental Health Concierge - high-empathy support with robust clinical escalation and BAA-ready security",
+      "sample_articles": [
+        "therapy_services.md",
+        "insurance_billing.md",
+        "privacy_security.md"
+      ],
+      "healthcare": true,
+      "redaction_mode": "skyflow_required"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# Hop Support - RAG Pipeline Dependencies
+chromadb>=1.5.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+openai>=1.0.0
+python-multipart>=0.0.6
+redis>=5.0.0

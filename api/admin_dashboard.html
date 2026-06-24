@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hop Support - Admin Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f8fafc; }
+        h1, h2 { color: #1e293b; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .stat-label { font-size: 14px; color: #64748b; margin-bottom: 5px; }
+        .stat-value { font-size: 28px; font-weight: bold; color: #0f172a; }
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: #f1f5f9; padding: 12px 15px; font-size: 14px; color: #475569; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        tr:last-child td { border-bottom: none; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .status-failure { background: #fee2e2; color: #ef4444; }
+        .status-success { background: #dcfce7; color: #22c55e; }
+        .refresh-btn { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500; margin-bottom: 20px; }
+        .refresh-btn:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Hop Support Admin Dashboard</h1>
+        <button class="refresh-btn" onclick="loadData()">Refresh Data</button>
+    </header>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Interactions</div>
+            <div class="stat-value" id="total-interactions">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Avg. Star Rating</div>
+            <div class="stat-value" id="avg-stars">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Thumbs Up Rate</div>
+            <div class="stat-value" id="thumbs-up-rate">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Failure Rate</div>
+            <div class="stat-value" id="failure-rate">-</div>
+        </div>
+    </div>
+
+    <h2>Recent Failures</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>User Query</th>
+                    <th>Intent</th>
+                    <th>Confidence</th>
+                    <th>Root Cause</th>
+                    <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody id="failures-table">
+                    <!-- Rows will be added here -->
+                    </tbody>
+                    </table>
+                    </div>
+
+                    <script>
+                    async function loadData() {
+                    try {
+                    // Run Analysis first
+                    await fetch('/admin/failures/analyze', { method: 'POST' });
+
+                    // Load Metrics
+                    const metricsRes = await fetch('/admin/metrics');
+
+                
+                document.getElementById('total-interactions').textContent = metrics.total_interactions;
+                document.getElementById('avg-stars').textContent = metrics.avg_star_rating + ' / 5';
+                document.getElementById('thumbs-up-rate').textContent = (metrics.thumbs_up_rate * 100).toFixed(1) + '%';
+                document.getElementById('failure-rate').textContent = (metrics.failure_rate * 100).toFixed(1) + '%';
+
+                // Load Failures
+                const feedbackRes = await fetch('/admin/feedback?failures_only=true');
+                const feedback = await feedbackRes.json();
+                
+                const tableBody = document.getElementById('failures-table');
+                tableBody.innerHTML = '';
+                
+                feedback.records.slice(0, 10).forEach(record => {
+                    const row = document.createElement('tr');
+                    const date = new Date(record.created_at).toLocaleString();
+                    
+                    row.innerHTML = `
+                        <td>${date}</td>
+                        <td>${record.query || 'N/A'}</td>
+                        <td>${record.intent || 'unknown'}</td>
+                        <td>${(record.confidence || 0).toFixed(2)}</td>
+                        <td><strong>${record.category_label || 'Pending Analysis'}</strong></td>
+                        <td><span class="status-badge status-failure">FAILURE</span></td>
+                    `;
+
+                });
+                
+                if (feedback.records.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #64748b;">No failures recorded yet.</td></tr>';
+                }
+
+                console.error('Failed to load dashboard data:', err);
+            }
+        }
+
+        // Initial load
+        loadData();
+    </script>
+</body>
+</html>
