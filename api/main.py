@@ -1104,6 +1104,154 @@ async def wp_intent_map():
     }
 
 
+# --- Omni-Hub Cross-Channel Context Endpoints ---
+
+class OmniContextRequest(BaseModel):
+    email: Optional[str] = None
+    customer_id: Optional[str] = None
+
+class OmniSearchRequest(BaseModel):
+    query: str
+
+@app.post("/omni/context")
+async def get_omni_context(request: OmniContextRequest):
+    """
+    Get unified customer context across all channels.
+    
+    Merges data from: CRM tickets, voice sessions, social interactions,
+    and web chat sessions under a single customer identity.
+    
+    Args:
+        email: Customer email (primary lookup)
+        customer_id: Direct customer ID (fallback)
+        
+    Returns:
+        Unified context dict with timeline, CRM data, and channel history
+    """
+    try:
+        result = state_store.get_unified_context(
+            email=request.email,
+            customer_id=request.customer_id,
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Omni-Hub context error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/omni/search")
+async def search_omni_context(request: OmniSearchRequest):
+    """
+    Search across all stored customer context for a keyword or phrase.
+    
+    Useful for finding customers by order numbers, topics, or
+    conversation content across all channels.
+    
+    Args:
+        query: Search term (order number, topic, etc.)
+        
+    Returns:
+        List of matching context entries
+    """
+    try:
+        results = state_store.search_context(request.query)
+        return {
+            "query": request.query,
+            "results": results,
+            "count": len(results),
+        }
+    except Exception as e:
+        logger.error(f"Omni-Hub search error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/omni/customer/{identity}")
+async def get_customer_by_identity(identity: str):
+    """
+    Find a customer by any known identity value.
+    
+    Searches across email, phone, social handles, and
+    WhatsApp numbers without needing to specify the type.
+    
+    Args:
+        identity: Email, phone number, or social handle
+        
+    Returns:
+        Customer info with all linked channels
+    """
+    try:
+        customer_id = state_store.get_customer_by_identity(identity)
+        if not customer_id:
+            return {
+                "found": False,
+                "identity": identity,
+                "message": f"No customer found for identity: {identity}",
+            }
+        
+        context = state_store.get_unified_context(customer_id=customer_id)
+        return {
+            "found": True,
+            "identity": identity,
+            "customer_id": customer_id,
+            "context": context,
+        }
+    except Exception as e:
+        logger.error(f"Omni-Hub customer lookup error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/omni/prompt-context/{email}")
+async def get_prompt_context(email: str):
+    """
+    Get a concise natural language context string for AI prompt injection.
+    
+    This produces a ready-to-use context block describing the customer's
+    history across all channels. Designed to be injected into LLM prompts
+    for personalized responses.
+    
+    Args:
+        email: Customer email address
+        
+    Returns:
+        Context dict with a ready-to-use prompt string and metadata
+    """
+    try:
+        customer_id = state_store.resolve_identity("email", email)
+        prompt = state_store.get_context_for_prompt(email=email, customer_id=customer_id)
+        
+        return {
+            "email": email,
+            "customer_id": customer_id,
+            "has_context": bool(prompt),
+            "prompt_context": prompt,
+        }
+    except Exception as e:
+        logger.error(f"Omni-Hub prompt context error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/omni/email/{email}")
+async def search_by_email(email: str):
+    """
+    Find all customer records and context by email address.
+    
+    Searches: identity mappings, CRM tickets, session store,
+    and social hub interactions.
+    
+    Args:
+        email: Customer email address
+        
+    Returns:
+        Unified customer profile with all channel context
+    """
+    try:
+        result = state_store.search_by_email(email)
+        return result
+    except Exception as e:
+        logger.error(f"Omni-Hub email search error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

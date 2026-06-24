@@ -390,3 +390,321 @@ def get_token_map(self, session_id: str) -> dict:
 # Bind methods to StateStore
 StateStore.store_token_map = store_token_map
 StateStore.get_token_map = get_token_map
+
+
+# ====================================================================
+# Omni-Hub Expansion: Cross-Channel Context Merging & Unification
+# ====================================================================
+# These methods expand the StateStore to merge context from multiple
+# sources (CRM, demo sessions, social, voice) under a single customer
+# identity, enabling consistent AI memory across all touchpoints.
+# ====================================================================
+
+
+def search_by_email(self, email: str) -> Dict[str, Any]:
+    """
+    Find all customer context across channels using email as the
+    unified identifier.
+    
+    Searches: identity mappings, CRM tickets, session store, social hub
+    
+    Args:
+        email: Customer email address
+        
+    Returns:
+        Unified customer profile with all channel context merged
+    """
+    import json as _json
+    
+    result = {
+        "email": email,
+        "customer_id": None,
+        "channels": [],
+        "crm_tickets": [],
+        "sessions": [],
+        "interaction_count": 0,
+        "found": False,
+    }
+    
+    # Step 1: Resolve email to customer_id
+    customer_id = self.resolve_identity("email", email)
+    
+    if not customer_id:
+        # Try to find via identity mappings file
+        mapping_file = os.path.join(self.store_dir, "identity_mappings.json")
+        if os.path.exists(mapping_file):
+            with open(mapping_file) as f:
+                mappings = _json.load(f)
+            for key, cid in mappings.items():
+                if email in key:
+                    customer_id = cid
+                    break
+    
+    if customer_id:
+        result["customer_id"] = customer_id
+        result["found"] = True
+        
+        # Step 2: Get cross-channel context
+        context = self.get_cross_channel_context(customer_id)
+        result["channels"] = context.get("channels_used", [])
+        result["interaction_count"] = context.get("total_sessions", 0)
+        
+        # Step 3: Get all sessions for this customer
+        sessions = self.find_customer_sessions(customer_id, limit=10)
+        result["sessions"] = [
+            {
+                "session_id": s.get("session_id"),
+                "channel": s.get("channel"),
+                "created_at": s.get("created_at"),
+                "is_active": s.get("is_active"),
+                "interaction_count": len(s.get("history", [])),
+                "last_intent": s.get("context", {}).get("last_intent"),
+            }
+            for s in sessions
+        ]
+        
+        # Step 4: Get CRM tickets for this customer (via mock provider)
+        try:
+            from api.crm import get_crm_provider
+            crm = get_crm_provider()
+            tickets = crm.find_tickets_by_email(email)
+            result["crm_tickets"] = [
+                {
+                    "id": t.id,
+                    "subject": t.subject,
+                    "status": t.status,
+                    "priority": t.priority,
+                    "created_at": str(t.created_at),
+                    "tags": t.tags,
+                }
+                for t in tickets
+            ]
+        except Exception as e:
+            logger.warning(f"Could not fetch CRM tickets for {email}: {e}")
+            result["crm_tickets"] = []
+    
+    return result
+
+
+def get_unified_context(self, email: str = None, customer_id: str = None) -> Dict[str, Any]:
+    """
+    Get a unified customer context profile by merging all available
+    data sources: session history, CRM tickets, social interactions,
+    and voice conversations.
+    
+    This is the primary Omni-Hub method for building AI prompts with
+    full cross-channel memory.
+    
+    Args:
+        email: Customer email (primary lookup)
+        customer_id: Direct customer ID (fallback if email not provided)
+        
+    Returns:
+        Unified context dict for AI prompt construction
+    """
+    import json as _json
+    
+    if not customer_id and email:
+        customer_id = self.resolve_identity("email", email)
+    
+    if not customer_id:
+        return {
+            "customer_id": None,
+            "known_customer": False,
+            "context_summary": "New customer, no prior context available.",
+        }
+    
+    # Gather data from all sources
+    channel_context = self.get_cross_channel_context(customer_id)
+    
+    # Build CRM summary
+    crm_summary = {"open_tickets": 0, "recent_tickets": [], "escalations": 0}
+    try:
+        from api.crm import get_crm_provider
+        crm = get_crm_provider()
+        
+        # Find all linked identities to get email
+        identities = []
+        mapping_file = os.path.join(self.store_dir, "identity_mappings.json")
+        if os.path.exists(mapping_file):
+            with open(mapping_file) as f:
+                mappings = _json.load(f)
+            for key, cid in mappings.items():
+                if cid == customer_id and "email" in key:
+                    email_found = key.split(":", 1)[1]
+                    tickets = crm.find_tickets_by_email(email_found)
+                    for t in tickets:
+                        crm_summary["recent_tickets"].append({
+                            "id": t.id,
+                            "subject": t.subject,
+                            "status": t.status,
+                            "priority": t.priority,
+                        })
+                        if t.status == "open":
+                            crm_summary["open_tickets"] += 1
+                        if "escalation" in t.tags:
+                            crm_summary["escalations"] += 1
+    except Exception as e:
+        logger.warning(f"CRM context gather failed: {e}")
+    
+    # Build unified customer timeline
+    timeline = []
+    sessions = self.find_customer_sessions(customer_id, limit=20)
+    for session in sessions:
+        for interaction in session.get("history", []):
+            timeline.append({
+                "timestamp": interaction.get("timestamp", ""),
+                "channel": session.get("channel"),
+                "intent": interaction.get("intent", "unknown"),
+                "summary": interaction.get("query", "")[:100],
+                "resolved": interaction.get("resolved", False),
+            })
+    
+    # Sort by timestamp
+    timeline.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    return {
+        "customer_id": customer_id,
+        "known_customer": True,
+        "context_summary": (
+            f"Customer has {channel_context.get('total_sessions', 0)} session(s) "
+            f"across {len(channel_context.get('channels_used', []))} channel(s): "
+            f"{', '.join(channel_context.get('channels_used', ['unknown']))}. "
+            f"{crm_summary['open_tickets']} open ticket(s), "
+            f"{crm_summary['escalations']} escalation(s)."
+        ),
+        "channels_used": channel_context.get("channels_used", []),
+        "total_sessions": channel_context.get("total_sessions", 0),
+        "last_channel": channel_context.get("last_channel"),
+        "last_intent": channel_context.get("last_intent"),
+        "crm": crm_summary,
+        "recent_interactions": channel_context.get("recent_interactions", []),
+        "timeline": timeline[:10],
+        "all_tickets": crm_summary["recent_tickets"],
+    }
+
+
+def get_customer_by_identity(self, identity_value: str) -> Optional[str]:
+    """
+    Find a customer_id by any known identity value (email, phone, social handle).
+    
+    This is the universal identity resolver that searches across all
+    identity types without needing to specify the type.
+    
+    Args:
+        identity_value: Email, phone number, social handle, etc.
+        
+    Returns:
+        customer_id if found, None otherwise
+    """
+    # Try common identity types
+    for id_type in ["email", "phone", "social_handle", "whatsapp_number"]:
+        cid = self.resolve_identity(id_type, identity_value)
+        if cid:
+            return cid
+    return None
+
+
+def get_context_for_prompt(self, email: str = None, customer_id: str = None) -> str:
+    """
+    Build a concise context string for AI prompt injection.
+    
+    This produces a ready-to-use natural language context block
+    that can be inserted into LLM prompts for personalized responses.
+    
+    Args:
+        email: Customer email
+        customer_id: Direct customer ID
+        
+    Returns:
+        Context string for AI prompt
+    """
+    context = self.get_unified_context(email=email, customer_id=customer_id)
+    
+    if not context.get("known_customer"):
+        return ""
+    
+    parts = []
+    parts.append(f"Customer has {context['total_sessions']} prior session(s).")
+    
+    if context["channels_used"]:
+        parts.append(f"Previous channels: {', '.join(context['channels_used'])}.")
+    
+    if context["last_intent"]:
+        parts.append(f"Last intent: {context['last_intent']}.")
+    
+    if context["crm"]["open_tickets"] > 0:
+        parts.append(f"Has {context['crm']['open_tickets']} open support ticket(s).")
+        if context["crm"]["recent_tickets"]:
+            subjects = [t["subject"] for t in context["crm"]["recent_tickets"][:2]]
+            parts.append(f"Recent tickets: {'; '.join(subjects)}.")
+    
+    if context["recent_interactions"]:
+        last = context["recent_interactions"][0]
+        parts.append(
+            f"Last interaction was via {last.get('channel', 'unknown')} "
+            f"about: '{last.get('query', '')[:80]}'."
+        )
+    
+    return " ".join(parts)
+
+
+def search_context(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """
+    Search across all stored context for a keyword or phrase.
+    
+    This is useful for finding customers by conversation content,
+    order numbers, or any searchable text across sessions.
+    
+    Args:
+        query: Search term (order number, topic keyword, etc.)
+        limit: Max results
+        
+    Returns:
+        List of matching context entries with customer info
+    """
+    import json as _json
+    
+    results = []
+    query_lower = query.lower()
+    
+    if not self.use_redis:
+        for filename in os.listdir(self.store_dir):
+            if filename.endswith(".json") and filename != "identity_mappings.json":
+                path = os.path.join(self.store_dir, filename)
+                try:
+                    with open(path) as f:
+                        data = _json.load(f)
+                    
+                    # Search in session history
+                    for interaction in data.get("history", []):
+                        text = f"{interaction.get('query', '')} {interaction.get('response', '')}"
+                        if query_lower in text.lower():
+                            results.append({
+                                "session_id": data.get("session_id"),
+                                "customer_id": data.get("customer_id"),
+                                "channel": data.get("channel"),
+                                "match": interaction.get("query", "")[:100],
+                                "timestamp": interaction.get("timestamp"),
+                            })
+                            break  # One match per session
+                except Exception:
+                    continue
+    
+    # Deduplicate and limit
+    seen = set()
+    unique_results = []
+    for r in results:
+        if r["session_id"] not in seen:
+            seen.add(r["session_id"])
+            unique_results.append(r)
+    
+    return unique_results[:limit]
+
+
+# Bind all new methods to StateStore
+StateStore.search_by_email = search_by_email
+StateStore.get_unified_context = get_unified_context
+StateStore.get_customer_by_identity = get_customer_by_identity
+StateStore.get_context_for_prompt = get_context_for_prompt
+StateStore.search_context = search_context
